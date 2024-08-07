@@ -6,7 +6,8 @@
     "/.git",
     "/.gitignore",
     ".vscode/extensions.json",
-    "pnpm-lock.yaml"
+    "pnpm-lock.yaml",
+    "/src/normalize.css"
   ],
   "useGitignore": true,
   "allowCompoundWords": true,

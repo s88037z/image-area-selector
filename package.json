@@ -17,10 +17,15 @@
     "prepare": "husky install"
   },
   "dependencies": {
+    "@babel/preset-react": "^7.24.7",
+    "@emotion/react": "^11.13.0",
+    "path": "^0.12.7",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@emotion/babel-plugin": "^11.12.0",
+    "@types/node": "^22.1.0",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@typescript-eslint/eslint-plugin": "^6.14.0",
