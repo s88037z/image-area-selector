@@ -1,3 +1,5 @@
+import ImagePicker from "@/features/imagePicker/components/ImagePicker";
+
 export function App() {
-  return <div>Your code starts here</div>;
+  return <ImagePicker />;
 }
