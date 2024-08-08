@@ -1,6 +1,8 @@
 import ImageIcon from "@/components/ImageIcon";
 import { COLOR } from "@/constants";
 import { css } from "@emotion/react";
+import { useEffect, useId, useState } from "react";
+import ImagePreviewer from "./ImagePreviewer";
 
 const ImageUploaderCss = {
   container: css({
@@ -24,6 +26,7 @@ const ImageUploaderCss = {
     height: "100%",
   }),
   uploadArea: css({
+    position: "relative",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -36,9 +39,6 @@ const ImageUploaderCss = {
     borderRadius: "8px",
     backgroundColor: COLOR.white,
     color: COLOR.grey700,
-    "&:hover": {
-      cursor: "pointer",
-    },
   }),
   circle: css({
     display: "block",
@@ -47,19 +47,58 @@ const ImageUploaderCss = {
     backgroundColor: COLOR.grey300,
     borderRadius: `${12 / 16}rem`,
   }),
+  hiddenInput: css({
+    width: "100%",
+    height: "100%",
+    position: "absolute",
+    opacity: 0,
+    "&:hover": {
+      cursor: "pointer",
+    },
+  }),
 };
 
 export default function ImageUploader() {
+  const imageUploadId = useId();
+  const [previewURL, setPreviewURL] = useState<string | null>(null);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e?.target?.files?.[0]) return;
+    const file = e.target.files[0];
+    const objectURL = window.URL.createObjectURL(file);
+    setPreviewURL(objectURL);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (previewURL) {
+        window.URL.revokeObjectURL(previewURL);
+      }
+    };
+  }, [previewURL]);
+
   return (
     <div css={ImageUploaderCss.container}>
       <header css={ImageUploaderCss.header}>
         <span css={ImageUploaderCss.circle} />
       </header>
       <div css={ImageUploaderCss.content}>
-        <div css={ImageUploaderCss.uploadArea}>
-          <ImageIcon size={36} />
-          Upload Image
-        </div>
+        {previewURL ? (
+          <ImagePreviewer url={previewURL} />
+        ) : (
+          <div css={ImageUploaderCss.uploadArea}>
+            <ImageIcon size={36} />
+            <input
+              css={ImageUploaderCss.hiddenInput}
+              type="file"
+              id={`image-uploader-${imageUploadId}`}
+              onChange={handleFileChange}
+            />
+            <label htmlFor={`image-uploader-${imageUploadId}`}>
+              Upload Image
+            </label>
+          </div>
+        )}
       </div>
     </div>
   );

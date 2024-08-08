@@ -8,7 +8,7 @@ export default function ImageIcon({
     <svg
       stroke={color}
       fill={color}
-      stroke-width="0"
+      strokeWidth="0"
       viewBox="0 0 1024 1024"
       height={size}
       width={size}
