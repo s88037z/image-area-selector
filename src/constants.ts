@@ -6,5 +6,7 @@ export const COLOR = {
   blue100: "hsl(190, 37%, 96%)",
   blue900: "hsl(210, 26%, 22%)",
 
+  orange500: "hsl(14, 85%, 55%)",
+
   white: "hsl(0, 0%, 100%)",
 };
