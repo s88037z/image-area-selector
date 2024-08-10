@@ -10,13 +10,15 @@ type PressLocation = {
 };
 
 type useDrawSelectionProp = {
-  setSelections: React.Dispatch<React.SetStateAction<Selection[]>>;
+  selections: Selection[];
+  onSelectionChange: (selections: Selection[]) => void;
   previewRef: React.RefObject<HTMLDivElement>;
   pointerStatus: PointerStatus;
 };
 
 export default function useDrawSelection({
-  setSelections,
+  selections,
+  onSelectionChange,
   previewRef,
   pointerStatus,
 }: useDrawSelectionProp) {
@@ -61,7 +63,7 @@ export default function useDrawSelection({
   function completeSelection() {
     setPressLocation({ isPointerDown: false });
     if (darwingSelection) {
-      setSelections((pre) => [...pre, darwingSelection!]);
+      onSelectionChange([...selections, darwingSelection]);
       setDarwingSelection(null);
     }
   }

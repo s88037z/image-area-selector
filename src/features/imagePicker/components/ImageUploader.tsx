@@ -2,7 +2,6 @@ import ImageIcon from "@/components/ImageIcon";
 import { COLOR } from "@/constants";
 import { css } from "@emotion/react";
 import { useEffect, useId, useState } from "react";
-import ImagePreviewer from "./ImagePreviewer";
 
 const ImageUploaderCss = {
   container: css({
@@ -58,7 +57,11 @@ const ImageUploaderCss = {
   }),
 };
 
-export default function ImageUploader() {
+type ImageUploaderProps = {
+  renderPreview: (url: string) => JSX.Element;
+};
+
+export default function ImageUploader({ renderPreview }: ImageUploaderProps) {
   const imageUploadId = useId();
   const [previewURL, setPreviewURL] = useState<string | null>(null);
 
@@ -84,7 +87,7 @@ export default function ImageUploader() {
       </header>
       <div css={ImageUploaderCss.content}>
         {previewURL ? (
-          <ImagePreviewer url={previewURL} />
+          renderPreview(previewURL)
         ) : (
           <div css={ImageUploaderCss.uploadArea}>
             <ImageIcon size={36} />

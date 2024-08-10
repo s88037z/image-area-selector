@@ -2,14 +2,17 @@ import { useRef, useState } from "react";
 import { Selection, PointerStatus } from "../types";
 import { Rnd } from "react-rnd";
 
-type useSelectionsProps = {
-  setPointerStatus: React.Dispatch<React.SetStateAction<PointerStatus>>;
+type useSelectionsHandlersProps = {
+  selections: Selection[];
+  updatePointerStatus: (newStatus: PointerStatus) => void;
+  onSelectionChange: (selections: Selection[]) => void;
 };
 
-export default function useSelections({
-  setPointerStatus,
-}: useSelectionsProps) {
-  const [selections, setSelections] = useState<Selection[]>([]);
+export default function useSelectionsHandlers({
+  selections,
+  updatePointerStatus,
+  onSelectionChange,
+}: useSelectionsHandlersProps) {
   const [currentSelectionId, setCurrentSelectionId] = useState<string | null>(
     null,
   );
@@ -17,8 +20,8 @@ export default function useSelections({
 
   function deleteOneSelection(id: string) {
     const newSlections = selections.filter((selection) => selection.id !== id);
-    setSelections(newSlections);
-    setPointerStatus(PointerStatus.Out);
+    onSelectionChange(newSlections);
+    updatePointerStatus(PointerStatus.Out);
   }
 
   function checkCollision(curIdx: number, newData: Partial<Selection>) {
@@ -39,7 +42,7 @@ export default function useSelections({
       return { ...selection };
     });
 
-    setSelections(newSelections);
+    onSelectionChange(newSelections);
   }
 
   function resetPostion(curIdx: number) {
@@ -60,7 +63,6 @@ export default function useSelections({
     currentSelectionId,
     initOnDragSelection: trackCurrentSelectionId,
     selections,
-    setSelections,
     updateOneSelection,
     deleteOneSelection,
     checkCollision,
