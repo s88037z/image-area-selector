@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Selection, PointerStatus } from "../types";
+import { checkAllCollision } from "../utils/helper";
 
 type PressLocation = {
   data?: {
@@ -11,29 +12,29 @@ type PressLocation = {
 
 type useDrawSelectionProp = {
   selections: Selection[];
-  onSelectionChange: (selections: Selection[]) => void;
+  onSelectionsChange: (selections: Selection[]) => void;
   previewRef: React.RefObject<HTMLDivElement>;
   pointerStatus: PointerStatus;
 };
 
 export default function useDrawSelection({
   selections,
-  onSelectionChange,
+  onSelectionsChange,
   previewRef,
   pointerStatus,
 }: useDrawSelectionProp) {
   const [pressLocation, setPressLocation] = useState<PressLocation>({
     isPointerDown: false,
   });
-  const [darwingSelection, setDarwingSelection] = useState<Selection | null>(
+  const [creatingSelection, setCreatingSelection] = useState<Selection | null>(
     null,
   );
 
-  function startDrawingPoint(e: React.PointerEvent<HTMLDivElement>) {
+  function startDraw(e: React.PointerEvent<HTMLDivElement>) {
     if (previewRef.current) {
+      if (pointerStatus == PointerStatus.In) return;
       const x = e.clientX - previewRef.current.getBoundingClientRect().left;
       const y = e.clientY - previewRef.current.getBoundingClientRect().top;
-      if (pointerStatus == PointerStatus.In) return;
       setPressLocation({
         data: {
           x,
@@ -43,7 +44,7 @@ export default function useDrawSelection({
       });
     }
   }
-  function drawingSelection(e: React.PointerEvent<HTMLDivElement>) {
+  function drawing(e: React.PointerEvent<HTMLDivElement>) {
     if (
       pressLocation.isPointerDown &&
       pressLocation.data &&
@@ -51,7 +52,7 @@ export default function useDrawSelection({
     ) {
       const newX = e.clientX - previewRef.current.getBoundingClientRect().left;
       const newY = e.clientY - previewRef.current.getBoundingClientRect().top;
-      setDarwingSelection({
+      setCreatingSelection({
         id: crypto.randomUUID(),
         x: pressLocation.data.x,
         y: pressLocation.data.y,
@@ -60,19 +61,21 @@ export default function useDrawSelection({
       });
     }
   }
-  function completeSelection() {
+  function completeDraw() {
     setPressLocation({ isPointerDown: false });
-    if (darwingSelection) {
-      onSelectionChange([...selections, darwingSelection]);
-      setDarwingSelection(null);
+    if (creatingSelection) {
+      if (!checkAllCollision(creatingSelection, selections)) {
+        onSelectionsChange([...selections, creatingSelection]);
+      }
+      setCreatingSelection(null);
     }
   }
 
   return {
-    darwingSelection,
-    setDarwingSelection,
-    startDrawingPoint,
-    drawingSelection,
-    completeSelection,
+    creatingSelection,
+    setCreatingSelection,
+    startDraw,
+    drawing,
+    completeDraw,
   };
 }

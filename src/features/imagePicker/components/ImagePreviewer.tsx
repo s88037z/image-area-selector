@@ -5,7 +5,8 @@ import { Rnd } from "react-rnd";
 import SelectionComp from "./Selection";
 import useDrawSelection from "../hooks/useDrawSelection";
 import { PointerStatus, Selection } from "../types";
-import useSelectionsHandlers from "../hooks/useSelectionsHandlers";
+import { checkAllCollision } from "../utils/helper";
+import { SelectionsHandler } from "../hooks/useSelections";
 
 const ImagePreviewerCss = {
   self: css({
@@ -26,58 +27,52 @@ const DrawingSelectionCss = {
 
 type ImagePreviewerProps = {
   selections: Selection[];
+  selectionsHandler: SelectionsHandler;
   url: string;
-  onSelectionChange: (selections: Selection[]) => void;
-  onImageScaleChange: (newScale: number) => void;
 };
 
 export default function ImagePreviewer({
   selections,
   url,
-  onSelectionChange,
-  onImageScaleChange,
+  selectionsHandler,
 }: ImagePreviewerProps) {
   const [pointerStatus, setPointerStatus] = useState<PointerStatus>(
     PointerStatus.Out,
   );
+  const [currentSelectionId, setCurrentSelectionId] = useState<string | null>(
+    null,
+  );
   const previewRef = useRef<HTMLDivElement>(null);
+  const currentSelectionRef = useRef<Rnd>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  function updatePointerStatus(newStatus: PointerStatus) {
-    setPointerStatus(newStatus);
-  }
-  const {
-    initOnDragSelection,
-    currentSelectionRef,
-    currentSelectionId,
-    updateOneSelection,
-    deleteOneSelection,
-    checkCollision,
-    resetPostion,
-  } = useSelectionsHandlers({
-    selections,
-    updatePointerStatus,
-    onSelectionChange,
-  });
+  const { creatingSelection, startDraw, drawing, completeDraw } =
+    useDrawSelection({
+      previewRef,
+      selections,
+      onSelectionsChange: selectionsHandler.updateAll,
+      pointerStatus,
+    });
 
-  const {
-    darwingSelection,
-    startDrawingPoint,
-    drawingSelection,
-    completeSelection,
-  } = useDrawSelection({
-    previewRef,
-    selections,
-    onSelectionChange,
-    pointerStatus,
-  });
+  function rePosition(curSelectionIdx: number) {
+    if (currentSelectionRef.current) {
+      return currentSelectionRef.current.updatePosition({
+        x: selections[curSelectionIdx].x,
+        y: selections[curSelectionIdx].y,
+      });
+    }
+  }
+
+  function trackChosenId(id: string) {
+    setCurrentSelectionId(id);
+  }
 
   return (
     <div
       css={ImagePreviewerCss.self}
-      onPointerDown={startDrawingPoint}
-      onPointerMove={drawingSelection}
-      onPointerUp={completeSelection}
+      onPointerDown={startDraw}
+      onPointerMove={drawing}
+      onPointerUp={completeDraw}
       ref={previewRef}
     >
       <img
@@ -87,7 +82,7 @@ export default function ImagePreviewer({
         ref={imgRef}
         onLoad={() => {
           const el = imgRef.current!;
-          onImageScaleChange(el.naturalWidth / el.clientWidth);
+          selectionsHandler.updateScale(el.naturalWidth / el.clientWidth);
         }}
       />
       {selections &&
@@ -95,17 +90,29 @@ export default function ImagePreviewer({
         selections.map(({ x, y, width, height, id }, curIdx) => {
           return (
             <SelectionComp
+              onPointerDown={() => {
+                trackChosenId(id);
+              }}
               ref={id == currentSelectionId ? currentSelectionRef : undefined}
               bounds={previewRef.current!}
-              onIconClick={() => deleteOneSelection(id)}
+              onIconClick={() => {
+                selectionsHandler.deleteOne(id);
+                setPointerStatus(PointerStatus.Out);
+              }}
               key={id}
               size={{ width, height }}
               position={{ x, y }}
               onDragStop={(_, newData) => {
                 const newPosition = { x: newData.x, y: newData.y };
-                if (checkCollision(curIdx, { x: newData.x, y: newData.y }))
+                if (
+                  checkAllCollision(selections[curIdx], selections, {
+                    x: newData.x,
+                    y: newData.y,
+                  })
+                ) {
                   return;
-                updateOneSelection(id, newPosition);
+                }
+                selectionsHandler.updateOne(id, newPosition);
               }}
               onResizeStop={(_e, _d, ref, _delta, position) => {
                 const newData = {
@@ -113,18 +120,19 @@ export default function ImagePreviewer({
                   height: ref.offsetHeight,
                   ...position,
                 };
-                if (checkCollision(curIdx, newData)) {
-                  resetPostion(curIdx);
+                if (
+                  checkAllCollision(selections[curIdx], selections, newData)
+                ) {
+                  //Cancel resizing sometime cause unexpected postion-shifting.
+                  //So re position to the same location to avoid it.
+                  rePosition(curIdx);
                 } else {
-                  updateOneSelection(id, {
+                  selectionsHandler.updateOne(id, {
                     width: ref.offsetWidth,
                     height: ref.offsetHeight,
                     ...position,
                   });
                 }
-              }}
-              onDrag={() => {
-                initOnDragSelection(selections[curIdx].id);
               }}
               onPointerEnter={() => {
                 setPointerStatus(PointerStatus.In);
@@ -135,13 +143,13 @@ export default function ImagePreviewer({
             />
           );
         })}
-      {darwingSelection && (
+      {creatingSelection && (
         <Rnd
           css={DrawingSelectionCss.self}
-          position={{ x: darwingSelection.x, y: darwingSelection.y }}
+          position={{ x: creatingSelection.x, y: creatingSelection.y }}
           size={{
-            width: darwingSelection.width,
-            height: darwingSelection.height,
+            width: creatingSelection.width,
+            height: creatingSelection.height,
           }}
         />
       )}

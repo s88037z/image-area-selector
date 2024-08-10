@@ -1,35 +1,12 @@
-import { useState } from "react";
 import TwoPaneLayout from "@/components/TwoPaneLayout";
 import ImageUploader from "./ImageUploader";
 import ImagePreviewer from "./ImagePreviewer";
 import DataPrviewer from "./DataPrviewer";
 import { Selection } from "../types";
-
-type PreviewData = {
-  selections: Selection[];
-  scale: number | null;
-};
+import useSelections from "../hooks/useSelections";
 
 export default function ImagePicker() {
-  const [previewData, setPreviewData] = useState<PreviewData>({
-    selections: [],
-    scale: null,
-  });
-
-  const { selections, scale } = previewData;
-
-  function handleSelectionChange(newSelections: Selection[]) {
-    setPreviewData((pre) => ({
-      ...pre,
-      selections: newSelections,
-    }));
-  }
-  function handleImageScaleChange(newScale: number) {
-    setPreviewData((pre) => ({
-      ...pre,
-      scale: newScale,
-    }));
-  }
+  const { selections, scale, selectionsHandler } = useSelections();
 
   return (
     <TwoPaneLayout
@@ -38,9 +15,8 @@ export default function ImagePicker() {
           renderPreview={(url) => (
             <ImagePreviewer
               url={url}
-              selections={previewData.selections}
-              onSelectionChange={handleSelectionChange}
-              onImageScaleChange={handleImageScaleChange}
+              selections={selections}
+              selectionsHandler={selectionsHandler}
             />
           )}
         />
