@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Selection } from "../types";
+import { Selection, PointerStatus } from "../types";
 
 type PressLocation = {
   data?: {
@@ -9,23 +9,17 @@ type PressLocation = {
   isPointerDown: boolean;
 };
 
-export enum PointerStatus {
-  In = "in-selection",
-  Out = "out-selection",
-}
-
 type useDrawSelectionProp = {
   setSelections: React.Dispatch<React.SetStateAction<Selection[]>>;
   previewRef: React.RefObject<HTMLDivElement>;
+  pointerStatus: PointerStatus;
 };
 
 export default function useDrawSelection({
   setSelections,
   previewRef,
+  pointerStatus,
 }: useDrawSelectionProp) {
-  const [pointerStatus, setPointerStatus] = useState<PointerStatus>(
-    PointerStatus.Out,
-  );
   const [pressLocation, setPressLocation] = useState<PressLocation>({
     isPointerDown: false,
   });
@@ -75,8 +69,6 @@ export default function useDrawSelection({
   return {
     darwingSelection,
     setDarwingSelection,
-    pointerStatus,
-    setPointerStatus,
     startDrawingPoint,
     drawingSelection,
     completeSelection,

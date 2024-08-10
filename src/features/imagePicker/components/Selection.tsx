@@ -24,15 +24,15 @@ const SelectionCss = {
 };
 
 type SelectionProps = {
-  onClick: React.MouseEventHandler<HTMLDivElement>;
+  onIconClick: React.MouseEventHandler<HTMLDivElement>;
 } & RemoveIndex<RndProps> &
   React.DOMAttributes<HTMLElement>;
 
 export const Selection = forwardRef<Rnd, SelectionProps>(
-  ({ onClick, ...rest }, ref) => {
+  ({ onIconClick, ...rest }, ref) => {
     return (
       <Rnd css={SelectionCss.self} ref={ref} {...rest}>
-        <div css={SelectionCss.trashCan} onClick={onClick}>
+        <div css={SelectionCss.trashCan} onClick={onIconClick}>
           <TrashCanIcon css={SelectionCss.icon} size={28} />
         </div>
       </Rnd>

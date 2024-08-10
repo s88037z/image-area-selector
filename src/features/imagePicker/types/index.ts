@@ -5,3 +5,8 @@ export type Selection = {
   width: number;
   height: number;
 };
+
+export enum PointerStatus {
+  In = "in-selection",
+  Out = "out-selection",
+}

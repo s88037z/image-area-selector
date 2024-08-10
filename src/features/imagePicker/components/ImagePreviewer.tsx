@@ -3,8 +3,9 @@ import { css } from "@emotion/react";
 import { useRef, useState } from "react";
 import { Rnd } from "react-rnd";
 import SelectionComp from "./Selection";
-import useDrawSelection, { PointerStatus } from "../hooks/useDrawSelection";
-import { Selection } from "../types";
+import useDrawSelection from "../hooks/useDrawSelection";
+import { PointerStatus } from "../types";
+import useSelections from "../hooks/useSelections";
 
 const ImagePreviewerCss = {
   self: css({
@@ -28,59 +29,35 @@ type ImagePreviewerProps = {
 };
 
 export default function ImagePreviewer({ url }: ImagePreviewerProps) {
-  const [selections, setSelections] = useState<Selection[]>([]);
-  const [currentSelectionId, setCurrentSelectionId] = useState<string | null>(
-    null,
+  const [pointerStatus, setPointerStatus] = useState<PointerStatus>(
+    PointerStatus.Out,
   );
-  const currentSelectionRef = useRef<Rnd>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
   const {
-    darwingSelection,
+    currentSelectionRef,
+    currentSelectionId,
+    initOnDragSelection,
+    selections,
+    setSelections,
+    updateOneSelection,
+    deleteOneSelection,
+    checkCollision,
+    resetPostion,
+  } = useSelections({
     setPointerStatus,
+  });
+
+  const {
+    darwingSelection,
     startDrawingPoint,
     drawingSelection,
     completeSelection,
   } = useDrawSelection({
     previewRef,
     setSelections,
+    pointerStatus,
   });
-
-  function handleDeleteSelection(id: string) {
-    const newSlections = selections.filter((selection) => selection.id !== id);
-    setSelections(newSlections);
-    setPointerStatus(PointerStatus.Out);
-  }
-
-  function checkCollision(curIdx: number, newData: Partial<Selection>) {
-    const current = selections[curIdx];
-    return selections.some((selection) => {
-      if (selection.id == current.id) return;
-      if (hasCollision({ ...current, ...newData }, selection)) return true;
-    });
-  }
-  function updateSelection(currentId: string, newData: Partial<Selection>) {
-    const newSelections = selections.map((selection) => {
-      if (selection.id == currentId) {
-        return {
-          ...selection,
-          ...newData,
-        };
-      }
-      return { ...selection };
-    });
-
-    setSelections(newSelections);
-  }
-
-  function resetPostion(curIdx: number) {
-    if (currentSelectionRef.current) {
-      return currentSelectionRef.current.updatePosition({
-        x: selections[curIdx].x,
-        y: selections[curIdx].y,
-      });
-    }
-  }
 
   return (
     <div
@@ -93,18 +70,19 @@ export default function ImagePreviewer({ url }: ImagePreviewerProps) {
       <img src={url} css={ImagePreviewerCss.img} draggable="false" />
       {selections &&
         previewRef.current &&
-        selections.map(({ x, y, width, height, id }, idx) => {
+        selections.map(({ x, y, width, height, id }, curIdx) => {
           return (
             <SelectionComp
               ref={id == currentSelectionId ? currentSelectionRef : undefined}
               bounds={previewRef.current!}
-              onClick={() => handleDeleteSelection(id)}
+              onIconClick={() => deleteOneSelection(id)}
               key={id}
               size={{ width, height }}
               position={{ x, y }}
               onDragStop={(_, newData) => {
-                if (checkCollision(idx, { x: newData.x, y: newData.y })) return;
-                updateSelection(id, newData);
+                if (checkCollision(curIdx, { x: newData.x, y: newData.y }))
+                  return;
+                updateOneSelection(id, newData);
               }}
               onResizeStop={(_e, _d, ref, _delta, position) => {
                 const newData = {
@@ -112,10 +90,10 @@ export default function ImagePreviewer({ url }: ImagePreviewerProps) {
                   height: ref.offsetHeight,
                   ...position,
                 };
-                if (checkCollision(idx, newData)) {
-                  resetPostion(idx);
+                if (checkCollision(curIdx, newData)) {
+                  resetPostion(curIdx);
                 } else {
-                  updateSelection(id, {
+                  updateOneSelection(id, {
                     width: ref.offsetWidth,
                     height: ref.offsetHeight,
                     ...position,
@@ -123,7 +101,7 @@ export default function ImagePreviewer({ url }: ImagePreviewerProps) {
                 }
               }}
               onDrag={() => {
-                setCurrentSelectionId(selections[idx].id);
+                initOnDragSelection(selections[curIdx].id);
               }}
               onPointerEnter={() => {
                 setPointerStatus(PointerStatus.In);
@@ -146,14 +124,4 @@ export default function ImagePreviewer({ url }: ImagePreviewerProps) {
       )}
     </div>
   );
-}
-
-function hasCollision(current: Selection, other: Selection) {
-  const noColision =
-    current.x > other.x + other.width ||
-    current.x + current.width < other.x ||
-    current.y > other.y + other.height ||
-    current.y + current.height < other.y;
-
-  return !noColision;
 }
