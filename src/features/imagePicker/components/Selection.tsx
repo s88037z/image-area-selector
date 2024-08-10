@@ -1,6 +1,8 @@
 import TrashCanIcon from "@/components/TrashCanIcon";
 import { COLOR } from "@/constants";
+import { RemoveIndex } from "@/types";
 import { css } from "@emotion/react";
+import { forwardRef } from "react";
 import { Rnd, type Props as RndProps } from "react-rnd";
 
 const SelectionCss = {
@@ -23,17 +25,19 @@ const SelectionCss = {
 
 type SelectionProps = {
   onClick: React.MouseEventHandler<HTMLDivElement>;
-};
+} & RemoveIndex<RndProps> &
+  React.DOMAttributes<HTMLElement>;
 
-export default function Selection({
-  onClick,
-  ...rest
-}: SelectionProps & RndProps) {
-  return (
-    <Rnd css={SelectionCss.self} {...rest}>
-      <div css={SelectionCss.trashCan} onClick={onClick}>
-        <TrashCanIcon css={SelectionCss.icon} size={28} />
-      </div>
-    </Rnd>
-  );
-}
+export const Selection = forwardRef<Rnd, SelectionProps>(
+  ({ onClick, ...rest }, ref) => {
+    return (
+      <Rnd css={SelectionCss.self} ref={ref} {...rest}>
+        <div css={SelectionCss.trashCan} onClick={onClick}>
+          <TrashCanIcon css={SelectionCss.icon} size={28} />
+        </div>
+      </Rnd>
+    );
+  },
+);
+
+export default Selection;

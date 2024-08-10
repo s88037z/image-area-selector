@@ -2,7 +2,9 @@ import { COLOR } from "@/constants";
 import { css } from "@emotion/react";
 import { useRef, useState } from "react";
 import { Rnd } from "react-rnd";
-import Selection from "./Selection";
+import SelectionComp from "./Selection";
+import useDrawSelection, { PointerStatus } from "../hooks/useDrawSelection";
+import { Selection } from "../types";
 
 const ImagePreviewerCss = {
   self: css({
@@ -12,7 +14,7 @@ const ImagePreviewerCss = {
   }),
   img: css({
     width: "100%",
-    position: "absolute",
+    display: "block",
   }),
 };
 const DrawingSelectionCss = {
@@ -25,79 +27,61 @@ type ImagePreviewerProps = {
   url: string;
 };
 
-type Selection = {
-  id: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-};
-type PressLocation = {
-  data?: {
-    x: number;
-    y: number;
-  };
-  isPressed: boolean;
-};
-
-enum PointerStatus {
-  In = "in-selection",
-  Out = "out-selection",
-}
-
 export default function ImagePreviewer({ url }: ImagePreviewerProps) {
-  const [pointerStatus, setPointerStatus] = useState<PointerStatus>(
-    PointerStatus.Out,
-  );
-  const [pressLocation, setPressLocation] = useState<PressLocation>({
-    isPressed: false,
-  });
-  const [darwingSelection, setDarwingSelection] = useState<Selection | null>(
+  const [selections, setSelections] = useState<Selection[]>([]);
+  const [currentSelectionId, setCurrentSelectionId] = useState<string | null>(
     null,
   );
-  const [selections, setSelections] = useState<Selection[]>([]);
+  const currentSelectionRef = useRef<Rnd>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
-  function startDrawingPoint(e: React.PointerEvent<HTMLDivElement>) {
-    if (previewRef.current) {
-      const x = e.clientX - previewRef.current?.getBoundingClientRect().left;
-      const y = e.clientY - previewRef.current?.getBoundingClientRect().top;
-      if (pointerStatus == PointerStatus.In) return;
-      setPressLocation({
-        data: {
-          x,
-          y,
-        },
-        isPressed: true,
-      });
-    }
-  }
-  function drawingSelection(e: React.PointerEvent<HTMLDivElement>) {
-    if (pressLocation.isPressed && pressLocation.data && previewRef.current) {
-      const newX = e.clientX - previewRef.current?.getBoundingClientRect().left;
-      const newY = e.clientY - previewRef.current?.getBoundingClientRect().top;
-      setDarwingSelection({
-        id: crypto.randomUUID(),
-        x: pressLocation.data.x,
-        y: pressLocation.data.y,
-        width: newX - pressLocation.data.x,
-        height: newY - pressLocation.data.y,
-      });
-    }
-  }
-  function completeSelection() {
-    setPressLocation({ isPressed: false });
-    if (darwingSelection) {
-      setSelections((pre) => [...pre, darwingSelection!]);
-      setDarwingSelection(null);
-    }
-  }
+  const {
+    darwingSelection,
+    setPointerStatus,
+    startDrawingPoint,
+    drawingSelection,
+    completeSelection,
+  } = useDrawSelection({
+    previewRef,
+    setSelections,
+  });
 
   function handleDeleteSelection(id: string) {
     const newSlections = selections.filter((selection) => selection.id !== id);
     setSelections(newSlections);
     setPointerStatus(PointerStatus.Out);
   }
+
+  function checkCollision(curIdx: number, newData: Partial<Selection>) {
+    const current = selections[curIdx];
+    return selections.some((selection) => {
+      if (selection.id == current.id) return;
+      if (hasCollision({ ...current, ...newData }, selection)) return true;
+    });
+  }
+  function updateSelection(currentId: string, newData: Partial<Selection>) {
+    const newSelections = selections.map((selection) => {
+      if (selection.id == currentId) {
+        return {
+          ...selection,
+          ...newData,
+        };
+      }
+      return { ...selection };
+    });
+
+    setSelections(newSelections);
+  }
+
+  function resetPostion(curIdx: number) {
+    if (currentSelectionRef.current) {
+      return currentSelectionRef.current.updatePosition({
+        x: selections[curIdx].x,
+        y: selections[curIdx].y,
+      });
+    }
+  }
+
   return (
     <div
       css={ImagePreviewerCss.self}
@@ -108,12 +92,39 @@ export default function ImagePreviewer({ url }: ImagePreviewerProps) {
     >
       <img src={url} css={ImagePreviewerCss.img} draggable="false" />
       {selections &&
-        selections.map(({ x, y, width, height, id }) => {
+        previewRef.current &&
+        selections.map(({ x, y, width, height, id }, idx) => {
           return (
-            <Selection
+            <SelectionComp
+              ref={id == currentSelectionId ? currentSelectionRef : undefined}
+              bounds={previewRef.current!}
               onClick={() => handleDeleteSelection(id)}
               key={id}
-              default={{ x, y, width, height }}
+              size={{ width, height }}
+              position={{ x, y }}
+              onDragStop={(_, newData) => {
+                if (checkCollision(idx, { x: newData.x, y: newData.y })) return;
+                updateSelection(id, newData);
+              }}
+              onResizeStop={(_e, _d, ref, _delta, position) => {
+                const newData = {
+                  width: ref.offsetWidth,
+                  height: ref.offsetHeight,
+                  ...position,
+                };
+                if (checkCollision(idx, newData)) {
+                  resetPostion(idx);
+                } else {
+                  updateSelection(id, {
+                    width: ref.offsetWidth,
+                    height: ref.offsetHeight,
+                    ...position,
+                  });
+                }
+              }}
+              onDrag={() => {
+                setCurrentSelectionId(selections[idx].id);
+              }}
               onPointerEnter={() => {
                 setPointerStatus(PointerStatus.In);
               }}
@@ -135,4 +146,14 @@ export default function ImagePreviewer({ url }: ImagePreviewerProps) {
       )}
     </div>
   );
+}
+
+function hasCollision(current: Selection, other: Selection) {
+  const noColision =
+    current.x > other.x + other.width ||
+    current.x + current.width < other.x ||
+    current.y > other.y + other.height ||
+    current.y + current.height < other.y;
+
+  return !noColision;
 }
