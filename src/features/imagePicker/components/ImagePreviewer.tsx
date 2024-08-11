@@ -140,7 +140,9 @@ export default function ImagePreviewer({
               onPointerLeave={() => {
                 setPointerStatus(PointerStatus.Out);
               }}
-            />
+            >
+              {curIdx + 1}
+            </SelectionComp>
           );
         })}
       {creatingSelection && (

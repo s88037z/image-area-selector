@@ -21,6 +21,16 @@ const SelectionCss = {
   icon: css({
     display: "block",
   }),
+  index: css({
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLOR.grey300,
+    width: `${24 / 16}rem`,
+    height: `${24 / 16}rem`,
+    borderRadius: `${12 / 16}rem`,
+    margin: `4px 0px 0px 4px`,
+  }),
 };
 
 type SelectionProps = {
@@ -29,12 +39,13 @@ type SelectionProps = {
   React.DOMAttributes<HTMLElement>;
 
 export const Selection = forwardRef<Rnd, SelectionProps>(
-  ({ onIconClick, ...rest }, ref) => {
+  ({ onIconClick, children, ...rest }, ref) => {
     return (
       <Rnd css={SelectionCss.self} ref={ref} {...rest}>
         <div css={SelectionCss.trashCan} onClick={onIconClick}>
           <TrashCanIcon css={SelectionCss.icon} size={28} />
         </div>
+        <span css={SelectionCss.index}>{children}</span>
       </Rnd>
     );
   },
