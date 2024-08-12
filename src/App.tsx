@@ -1,4 +1,4 @@
-import ImagePicker from "@/features/imagePicker/components/ImagePicker";
+import { ImagePicker } from "@/features/imagePicker";
 
 export function App() {
   return <ImagePicker />;
